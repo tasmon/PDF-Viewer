@@ -51,7 +51,9 @@ async function renderPage(pageNum) {
     };
     
     await page.render(renderContext).promise;
-    pageInfoEl.textContent = `${pageNum}/${pdfDoc.numPages}`;
+    
+    // Explicitly update text numbers safely
+    pageInfoEl.textContent = pageNum + "/" + pdfDoc.numPages;
     
     // Reset Virtual Pan on new page load
     scrollX = 0;
@@ -64,34 +66,37 @@ async function renderPage(pageNum) {
 
 // Moves canvas smoothly inside the viewport container
 function updateScrollPosition() {
-  canvasContainer.style.left = `${-scrollX}px`;
-  canvasContainer.style.top = `${-scrollY}px`;
+  canvasContainer.style.left = (-scrollX) + "px";
+  canvasContainer.style.top = (-scrollY) + "px";
 }
 
-// Local File loader
+// Fixed Local File Loader using Object URLs instead of ArrayBuffers
 async function loadPDF(file) {
   if (!file) return;
-  const fileReader = new FileReader();
-  fileNameEl.textContent = "Loading...";
   
-  fileReader.onload = async function() {
-    const typedarray = new Uint8Array(this.result);
-    try {
-      pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
-      fileNameEl.textContent = file.name;
-      
-      startupScreen.classList.add('hidden');
-      canvasContainer.classList.remove('hidden');
-      isViewingPdf = true;
-      currentPageNum = 1;
-      
-      await renderPage(currentPageNum);
-    } catch (error) {
-      alert('Error rendering local file.');
-      fileNameEl.textContent = 'No File';
-    }
-  };
-  fileReader.readAsArrayBuffer(file);
+  fileNameEl.textContent = "Loading...";
+  pageInfoEl.textContent = "0/0";
+
+  try {
+    // Convert the local file into a secure Blob URL path
+    const fileUrl = URL.createObjectURL(file);
+    
+    // Load the file using standard loading mechanisms
+    const loadingTask = pdfjsLib.getDocument(fileUrl);
+    pdfDoc = await loadingTask.promise;
+    
+    fileNameEl.textContent = file.name;
+    startupScreen.classList.add('hidden');
+    canvasContainer.classList.remove('hidden');
+    isViewingPdf = true;
+    currentPageNum = 1;
+    
+    await renderPage(currentPageNum);
+  } catch (error) {
+    fileNameEl.textContent = 'Error';
+    pageInfoEl.textContent = '0/0';
+    alert('PDF format incompatible or engine crashed.');
+  }
 }
 
 // Menu overlay triggers
@@ -220,14 +225,13 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // CASE 2: While on Launch Screen (Hard-lock focus to Local PDF action only)
+  // CASE 2: While on Launch Screen
   if (!isViewingPdf) {
     if (pressedKey === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
       startupFilePicker.click();
     } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(pressedKey)) {
-      // Intentionally intercept and kill D-pad navigation on the home screen
       e.preventDefault();
       e.stopPropagation();
     }
