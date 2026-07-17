@@ -38,7 +38,6 @@
     <div id="menu-overlay" class="menu-overlay hidden" tabindex="-1">
       <div class="menu-title">Options</div>
       <ul class="menu-list" id="menu-list">
-        <!-- Secure label wrapper for standard menu file picking -->
         <label class="menu-item selected" data-action="open-file" for="menu-file-picker" style="display: block;">
           Open Local PDF
           <input type="file" id="menu-file-picker" accept="application/pdf" style="display: none;">
@@ -56,6 +55,8 @@
     </footer>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <!-- Load the global library first, then our controller script -->
+  <script src="./pdf.min.mjs"></script>
+  <script src="app.js"></script>
 </body>
 </html>

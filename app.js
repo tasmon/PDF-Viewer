@@ -1,8 +1,8 @@
-import * as pdfjsLib from './pdf.min.mjs';
+// Access the global PDFjs distribution layer
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
 
-// FORCE COMPATIBILITY MODE: Disable modern background workers completely for older cloud browsers
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-pdfjsLib.GlobalWorkerOptions.disableWorker = true;
+// Configure global worker source targeting the matching bundle file
+pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
 
 // Application State
 let pdfDoc = null;
@@ -72,50 +72,45 @@ function updateScrollPosition() {
   canvasContainer.style.top = (-scrollY) + "px";
 }
 
-// Fixed Compatibility Local File Loader using an legacy Uint8Array buffer strategy
-async function loadPDF(file) {
+// Universal Local File Loader using robust standard FileReader binary conversion
+function loadPDF(file) {
   if (!file) return;
   
   fileNameEl.textContent = "Loading...";
   pageInfoEl.textContent = "0/0";
 
-  try {
-    const fileReader = new FileReader();
+  const fileReader = new FileReader();
+  
+  fileReader.onload = function(e) {
+    const typedarray = new Uint8Array(e.target.result);
     
-    fileReader.onload = async function() {
-      try {
-        const typedarray = new Uint8Array(this.result);
-        
-        // Pass raw bytes directly to prevent background thread crashes
-        const loadingTask = pdfjsLib.getDocument({ data: typedarray });
-        pdfDoc = await loadingTask.promise;
-        
-        fileNameEl.textContent = file.name;
-        startupScreen.classList.add('hidden');
-        canvasContainer.classList.remove('hidden');
-        isViewingPdf = true;
-        currentPageNum = 1;
-        
-        await renderPage(currentPageNum);
-      } catch (innerError) {
-        showErrorUI();
-      }
-    };
-    
-    fileReader.onerror = function() {
+    // Pass raw typed array parameters directly into the compilation engine
+    pdfjsLib.getDocument({ data: typedarray }).promise.then(function(pdf) {
+      pdfDoc = pdf;
+      fileNameEl.textContent = file.name;
+      startupScreen.classList.add('hidden');
+      canvasContainer.classList.remove('hidden');
+      isViewingPdf = true;
+      currentPageNum = 1;
+      
+      renderPage(currentPageNum);
+    }).catch(function(error) {
+      console.error(error);
       showErrorUI();
-    };
-
-    fileReader.readAsArrayBuffer(file);
-  } catch (error) {
+    });
+  };
+  
+  fileReader.onerror = function() {
     showErrorUI();
-  }
+  };
+
+  fileReader.readAsArrayBuffer(file);
 }
 
 function showErrorUI() {
   fileNameEl.textContent = 'Error';
   pageInfoEl.textContent = '0/0';
-  alert('Incompatible PDF format or out of memory on simulator.');
+  alert('Unable to read or parse PDF file contents.');
 }
 
 // Menu overlay triggers
