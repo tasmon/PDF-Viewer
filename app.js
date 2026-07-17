@@ -1,71 +1,61 @@
-// Universal wrapper extracting the global bundle instance safely
-const pdfjsLib = globalThis.pdfjsLib || window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+// Access the global PDF.js object from the standard legacy file
+var pdfjsLib = window['pdfjs-dist/build/pdf'];
 
-// Set worker route using modern fallback format compatibility
-if (pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
-}
+// Set worker route using standard script configuration
+pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.js';
 
 // Application State
-let pdfDoc = null;
-let currentPageNum = 1;
-let currentScale = parseFloat(localStorage.getItem('pdf_scale')) || 0.6;
-let panStep = parseInt(localStorage.getItem('pdf_scroll_speed')) || 30;
+var pdfDoc = null;
+var currentPageNum = 1;
+var currentScale = parseFloat(localStorage.getItem('pdf_scale')) || 0.6;
+var panStep = parseInt(localStorage.getItem('pdf_scroll_speed')) || 30;
 
-let isMenuOpen = false;
-let isViewingPdf = false;
-let selectedMenuItemIndex = 0;
+var isMenuOpen = false;
+var isViewingPdf = false;
+var selectedMenuItemIndex = 0;
 
 // Virtual Panning coordinates
-let scrollX = 0;
-let scrollY = 0;
+var scrollX = 0;
+var scrollY = 0;
 
 // DOM Cache
-const viewerArea = document.getElementById('viewer-area');
-const canvasContainer = document.getElementById('canvas-container');
-const canvas = document.getElementById('pdf-canvas');
-const ctx = canvas ? canvas.getContext('2d') : null;
-const fileNameEl = document.getElementById('file-name');
-const pageInfoEl = document.getElementById('page-info');
-const menuOverlay = document.getElementById('menu-overlay');
-const menuItems = document.querySelectorAll('.menu-item');
-const softkeyLeft = document.getElementById('softkey-left');
-
-// Startup Screen DOM Elements
-const startupScreen = document.getElementById('startup-screen');
-const lblLocal = document.getElementById('lbl-local-file');
-
-// File pickers
-const startupFilePicker = document.getElementById('startup-file-picker');
-const menuFilePicker = document.getElementById('menu-file-picker');
+var viewerArea = document.getElementById('viewer-area');
+var canvasContainer = document.getElementById('canvas-container');
+var canvas = document.getElementById('pdf-canvas');
+var ctx = canvas ? canvas.getContext('2d') : null;
+var fileNameEl = document.getElementById('file-name');
+var pageInfoEl = document.getElementById('page-info');
+var menuOverlay = document.getElementById('menu-overlay');
+var menuItems = document.querySelectorAll('.menu-item');
+var softkeyLeft = document.getElementById('softkey-left');
+var startupScreen = document.getElementById('startup-screen');
+var startupFilePicker = document.getElementById('startup-file-picker');
+var menuFilePicker = document.getElementById('menu-file-picker');
 
 // Render a single PDF Page
-async function renderPage(pageNum) {
+function renderPage(pageNum) {
   if (!pdfDoc || !ctx) return;
-  try {
-    const page = await pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: currentScale });
+  
+  pdfDoc.getPage(pageNum).then(function(page) {
+    var viewport = page.getViewport({ scale: currentScale });
     
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
-    const renderContext = {
+    var renderContext = {
       canvasContext: ctx,
       viewport: viewport
     };
     
-    await page.render(renderContext).promise;
-    
-    // Smooth string formatting updates
-    pageInfoEl.textContent = pageNum + "/" + pdfDoc.numPages;
-    
-    // Reset Virtual Pan on new page load
-    scrollX = 0;
-    scrollY = 0;
-    updateScrollPosition();
-  } catch (error) {
+    page.render(renderContext).promise.then(function() {
+      pageInfoEl.textContent = pageNum + "/" + pdfDoc.numPages;
+      scrollX = 0;
+      scrollY = 0;
+      updateScrollPosition();
+    });
+  }).catch(function(error) {
     console.error('Render error:', error);
-  }
+  });
 }
 
 function updateScrollPosition() {
@@ -75,22 +65,19 @@ function updateScrollPosition() {
   }
 }
 
-// Fixed file execution logic using safe Native Blob streaming
+// Legacy File Reader compatibility layer
 function loadPDF(file) {
   if (!file) return;
-  if (!pdfjsLib) {
-    alert("PDF library failed to load properly.");
-    return;
-  }
   
   fileNameEl.textContent = "Loading...";
   pageInfoEl.textContent = "0/0";
 
-  try {
-    // Generate secure cross-platform proxy URL
-    const blobUrl = URL.createObjectURL(file);
+  var fileReader = new FileReader();
+  
+  fileReader.onload = function(e) {
+    var typedarray = new Uint8Array(e.target.result);
     
-    pdfjsLib.getDocument(blobUrl).promise.then(function(pdf) {
+    pdfjsLib.getDocument({ data: typedarray }).promise.then(function(pdf) {
       pdfDoc = pdf;
       fileNameEl.textContent = file.name;
       startupScreen.classList.add('hidden');
@@ -103,15 +90,19 @@ function loadPDF(file) {
       console.error(err);
       showErrorUI();
     });
-  } catch (error) {
+  };
+  
+  fileReader.onerror = function() {
     showErrorUI();
-  }
+  };
+
+  fileReader.readAsArrayBuffer(file);
 }
 
 function showErrorUI() {
   fileNameEl.textContent = 'Error';
   pageInfoEl.textContent = '0/0';
-  alert('Unable to load or render document elements.');
+  alert('Unable to render document components.');
 }
 
 // Menu overlay triggers
@@ -129,7 +120,7 @@ function closeMenu() {
 }
 
 function updateMenuHighlight() {
-  menuItems.forEach((item, index) => {
+  menuItems.forEach(function(item, index) {
     if (index === selectedMenuItemIndex) {
       item.classList.add('selected');
     } else {
@@ -138,12 +129,12 @@ function updateMenuHighlight() {
   });
 }
 
-function selectMenuItem(index = selectedMenuItemIndex) {
-  const selectedItem = menuItems[index];
+function selectMenuItem(index) {
+  var idx = index !== undefined ? index : selectedMenuItemIndex;
+  var selectedItem = menuItems[idx];
   if (!selectedItem) return;
   
-  const action = selectedItem.getAttribute('data-action');
-  
+  var action = selectedItem.getAttribute('data-action');
   if (action !== 'open-file') {
     closeMenu();
   }
@@ -165,23 +156,23 @@ function selectMenuItem(index = selectedMenuItemIndex) {
   }
 }
 
-// --- INITIALIZE ALL EVENT BINDINGS SAFELY ---
+// Attach event handlers safely
 if (startupFilePicker) {
-  startupFilePicker.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  startupFilePicker.addEventListener('change', function(e) {
+    var file = e.target.files[0];
     if (file) loadPDF(file);
   });
 }
 
 if (menuFilePicker) {
-  menuFilePicker.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  menuFilePicker.addEventListener('change', function(e) {
+    var file = e.target.files[0];
     if (file) loadPDF(file);
   });
 }
 
-menuItems.forEach((item, idx) => {
-  item.addEventListener('click', (e) => {
+menuItems.forEach(function(item, idx) {
+  item.addEventListener('click', function() {
     selectedMenuItemIndex = idx;
     updateMenuHighlight();
     if (item.getAttribute('data-action') !== 'open-file') {
@@ -190,9 +181,9 @@ menuItems.forEach((item, idx) => {
   });
 });
 
-const bottomBar = document.querySelector('.bottom-bar');
+var bottomBar = document.querySelector('.bottom-bar');
 if (bottomBar) {
-  bottomBar.addEventListener('click', (e) => {
+  bottomBar.addEventListener('click', function(e) {
     if (e.target.id === 'softkey-left') {
       if (isMenuOpen) {
         selectMenuItem();
@@ -203,14 +194,12 @@ if (bottomBar) {
   });
 }
 
-// --- KEYDOWN EMULATOR SYSTEM CONTROLLER ---
-window.addEventListener('keydown', (e) => {
-  const pressedKey = e.key;
-  const pressedCode = e.code;
+// Emulator standard physical Key handler layout
+window.addEventListener('keydown', function(e) {
+  var pressedKey = e.key;
 
   if (pressedKey === 'Escape' || e.keyCode === 27) {
     e.preventDefault();
-    e.stopPropagation();
     if (isMenuOpen) {
       selectMenuItem();
     } else {
@@ -242,11 +231,9 @@ window.addEventListener('keydown', (e) => {
   if (!isViewingPdf) {
     if (pressedKey === 'Enter') {
       e.preventDefault();
-      e.stopPropagation();
       if (startupFilePicker) startupFilePicker.click();
     } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(pressedKey)) {
       e.preventDefault();
-      e.stopPropagation();
     }
     return;
   }
@@ -259,7 +246,7 @@ window.addEventListener('keydown', (e) => {
       break;
     case 'ArrowDown':
       e.preventDefault();
-      const maxScrollY = Math.max(0, canvas.height - 260);
+      var maxScrollY = Math.max(0, canvas.height - 260);
       scrollY = Math.min(maxScrollY, scrollY + panStep);
       updateScrollPosition();
       break;
@@ -270,7 +257,7 @@ window.addEventListener('keydown', (e) => {
       break;
     case 'ArrowRight':
       e.preventDefault();
-      const maxScrollX = Math.max(0, canvas.width - 240);
+      var maxScrollX = Math.max(0, canvas.width - 240);
       scrollX = Math.min(maxScrollX, scrollX + panStep);
       updateScrollPosition();
       break;
@@ -280,7 +267,7 @@ window.addEventListener('keydown', (e) => {
       break;
   }
 
-  if (pressedKey === '*' || pressedCode === 'NumpadMultiply') {
+  if (pressedKey === '*' || e.keyCode === 106) {
     e.preventDefault();
     if (pdfDoc && currentPageNum > 1) {
       currentPageNum--;
@@ -288,7 +275,7 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  if (pressedKey === '#' || (pressedCode === 'Digit3' && !isMenuOpen && isViewingPdf)) {
+  if (pressedKey === '#' || pressedKey === '3') {
     e.preventDefault();
     if (pdfDoc && currentPageNum < pdfDoc.numPages) {
       currentPageNum++;
@@ -296,7 +283,7 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  if (pressedKey === '2' || pressedCode === 'Digit2') {
+  if (pressedKey === '2') {
     e.preventDefault();
     if (pdfDoc) {
       currentScale += 0.15;
@@ -304,7 +291,7 @@ window.addEventListener('keydown', (e) => {
     }
   }
 
-  if (pressedKey === '8' || pressedCode === 'Digit8') {
+  if (pressedKey === '8') {
     e.preventDefault();
     if (pdfDoc && currentScale > 0.2) {
       currentScale -= 0.15;
@@ -313,13 +300,12 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// INITIALIZATION
-window.addEventListener('DOMContentLoaded', () => {
+// Window startup loader initialization block
+window.addEventListener('load', function() {
   window.focus();
-  document.body.addEventListener('click', () => {
+  document.body.addEventListener('click', function() {
     window.focus();
   });
-
   if (fileNameEl) fileNameEl.textContent = 'No File';
   if (pageInfoEl) pageInfoEl.textContent = '0/0';
 });

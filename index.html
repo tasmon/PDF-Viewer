@@ -16,19 +16,15 @@
 
     <!-- Viewer Area -->
     <main class="viewer-area" id="viewer-area">
-      <!-- File Selector UI / On-Launch screen -->
       <div id="startup-screen" class="startup-container">
         <p class="startup-title">CloudPhone PDF</p>
-        
         <label for="startup-file-picker" class="selector-box active" id="lbl-local-file">
           Load Local PDF
           <input type="file" id="startup-file-picker" accept="application/pdf" style="display: none;">
         </label>
-        
         <p class="help-text">Press Enter or click above to browse files.</p>
       </div>
 
-      <!-- PDF Page Render Canvas -->
       <div id="canvas-container" class="hidden">
         <canvas id="pdf-canvas"></canvas>
       </div>
@@ -55,8 +51,8 @@
     </footer>
   </div>
 
-  <!-- Modern script sequence with explicit fallback checks -->
-  <script src="./pdf.min.mjs" type="module"></script>
-  <script src="app.js" type="module"></script>
+  <!-- LOAD LEGACY BUNDLES FIRST -->
+  <script src="./pdf.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
