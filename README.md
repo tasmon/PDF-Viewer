@@ -1,6 +1,6 @@
-# CloudPhone PDF Viewer
+## CloudPhone PDF Viewer
 
-A lightweight PDF reader widget for CloudMosa CloudPhone (240x320 feature phones).
+A lightweight, optimized PDF reader widget specifically designed for CloudMosa CloudPhone devices with 240x320 resolution.
 
 ## Features
 - Open local PDF files
