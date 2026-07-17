@@ -1,8 +1,10 @@
-// Access the global PDFjs distribution layer
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
+// Universal wrapper extracting the global bundle instance safely
+const pdfjsLib = globalThis.pdfjsLib || window.pdfjsLib || window['pdfjs-dist/build/pdf'];
 
-// Configure global worker source targeting the matching bundle file
-pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+// Set worker route using modern fallback format compatibility
+if (pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+}
 
 // Application State
 let pdfDoc = null;
@@ -22,7 +24,7 @@ let scrollY = 0;
 const viewerArea = document.getElementById('viewer-area');
 const canvasContainer = document.getElementById('canvas-container');
 const canvas = document.getElementById('pdf-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 const fileNameEl = document.getElementById('file-name');
 const pageInfoEl = document.getElementById('page-info');
 const menuOverlay = document.getElementById('menu-overlay');
@@ -39,7 +41,7 @@ const menuFilePicker = document.getElementById('menu-file-picker');
 
 // Render a single PDF Page
 async function renderPage(pageNum) {
-  if (!pdfDoc) return;
+  if (!pdfDoc || !ctx) return;
   try {
     const page = await pdfDoc.getPage(pageNum);
     const viewport = page.getViewport({ scale: currentScale });
@@ -54,7 +56,7 @@ async function renderPage(pageNum) {
     
     await page.render(renderContext).promise;
     
-    // Explicitly update text numbers safely
+    // Smooth string formatting updates
     pageInfoEl.textContent = pageNum + "/" + pdfDoc.numPages;
     
     // Reset Virtual Pan on new page load
@@ -66,26 +68,29 @@ async function renderPage(pageNum) {
   }
 }
 
-// Moves canvas smoothly inside the viewport container
 function updateScrollPosition() {
-  canvasContainer.style.left = (-scrollX) + "px";
-  canvasContainer.style.top = (-scrollY) + "px";
+  if (canvasContainer) {
+    canvasContainer.style.left = (-scrollX) + "px";
+    canvasContainer.style.top = (-scrollY) + "px";
+  }
 }
 
-// Universal Local File Loader using robust standard FileReader binary conversion
+// Fixed file execution logic using safe Native Blob streaming
 function loadPDF(file) {
   if (!file) return;
+  if (!pdfjsLib) {
+    alert("PDF library failed to load properly.");
+    return;
+  }
   
   fileNameEl.textContent = "Loading...";
   pageInfoEl.textContent = "0/0";
 
-  const fileReader = new FileReader();
-  
-  fileReader.onload = function(e) {
-    const typedarray = new Uint8Array(e.target.result);
+  try {
+    // Generate secure cross-platform proxy URL
+    const blobUrl = URL.createObjectURL(file);
     
-    // Pass raw typed array parameters directly into the compilation engine
-    pdfjsLib.getDocument({ data: typedarray }).promise.then(function(pdf) {
+    pdfjsLib.getDocument(blobUrl).promise.then(function(pdf) {
       pdfDoc = pdf;
       fileNameEl.textContent = file.name;
       startupScreen.classList.add('hidden');
@@ -94,23 +99,19 @@ function loadPDF(file) {
       currentPageNum = 1;
       
       renderPage(currentPageNum);
-    }).catch(function(error) {
-      console.error(error);
+    }).catch(function(err) {
+      console.error(err);
       showErrorUI();
     });
-  };
-  
-  fileReader.onerror = function() {
+  } catch (error) {
     showErrorUI();
-  };
-
-  fileReader.readAsArrayBuffer(file);
+  }
 }
 
 function showErrorUI() {
   fileNameEl.textContent = 'Error';
   pageInfoEl.textContent = '0/0';
-  alert('Unable to read or parse PDF file contents.');
+  alert('Unable to load or render document elements.');
 }
 
 // Menu overlay triggers
@@ -137,9 +138,10 @@ function updateMenuHighlight() {
   });
 }
 
-// Execute menu selection by index or element
 function selectMenuItem(index = selectedMenuItemIndex) {
   const selectedItem = menuItems[index];
+  if (!selectedItem) return;
+  
   const action = selectedItem.getAttribute('data-action');
   
   if (action !== 'open-file') {
@@ -163,50 +165,49 @@ function selectMenuItem(index = selectedMenuItemIndex) {
   }
 }
 
-// --- FILE PICKER EVENT LISTENERS ---
-startupFilePicker.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) loadPDF(file);
-});
+// --- INITIALIZE ALL EVENT BINDINGS SAFELY ---
+if (startupFilePicker) {
+  startupFilePicker.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) loadPDF(file);
+  });
+}
 
-menuFilePicker.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) loadPDF(file);
-});
+if (menuFilePicker) {
+  menuFilePicker.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) loadPDF(file);
+  });
+}
 
-// --- ADD MOUSE / CLICK EVENT LISTENERS ---
 menuItems.forEach((item, idx) => {
-  if (item.getAttribute('data-action') === 'open-file') {
-    item.addEventListener('click', () => {
-      selectedMenuItemIndex = idx;
-      updateMenuHighlight();
-      closeMenu();
-    });
-  } else {
-    item.addEventListener('click', () => {
-      selectedMenuItemIndex = idx;
-      updateMenuHighlight();
+  item.addEventListener('click', (e) => {
+    selectedMenuItemIndex = idx;
+    updateMenuHighlight();
+    if (item.getAttribute('data-action') !== 'open-file') {
       selectMenuItem(idx);
-    });
-  }
-});
-
-document.querySelector('.bottom-bar').addEventListener('click', (e) => {
-  if (e.target.id === 'softkey-left') {
-    if (isMenuOpen) {
-      selectMenuItem();
-    } else {
-      openMenu();
     }
-  }
+  });
 });
 
-// --- KEYDOWN EVENT ROUTER FOR EMULATOR KEYPAD ---
+const bottomBar = document.querySelector('.bottom-bar');
+if (bottomBar) {
+  bottomBar.addEventListener('click', (e) => {
+    if (e.target.id === 'softkey-left') {
+      if (isMenuOpen) {
+        selectMenuItem();
+      } else {
+        openMenu();
+      }
+    }
+  });
+}
+
+// --- KEYDOWN EMULATOR SYSTEM CONTROLLER ---
 window.addEventListener('keydown', (e) => {
   const pressedKey = e.key;
   const pressedCode = e.code;
 
-  // LSK / Options Key (Escape, code 27)
   if (pressedKey === 'Escape' || e.keyCode === 27) {
     e.preventDefault();
     e.stopPropagation();
@@ -218,7 +219,6 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // CASE 1: While Options overlay menu is open
   if (isMenuOpen) {
     switch (pressedKey) {
       case 'ArrowUp':
@@ -239,12 +239,11 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // CASE 2: While on Launch Screen
   if (!isViewingPdf) {
     if (pressedKey === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
-      startupFilePicker.click();
+      if (startupFilePicker) startupFilePicker.click();
     } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(pressedKey)) {
       e.preventDefault();
       e.stopPropagation();
@@ -252,7 +251,6 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // CASE 3: Active Canvas PDF View controls
   switch (pressedKey) {
     case 'ArrowUp':
       e.preventDefault();
@@ -282,7 +280,6 @@ window.addEventListener('keydown', (e) => {
       break;
   }
 
-  // Handle Digit/Symbol mappings explicitly
   if (pressedKey === '*' || pressedCode === 'NumpadMultiply') {
     e.preventDefault();
     if (pdfDoc && currentPageNum > 1) {
@@ -317,12 +314,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 // INITIALIZATION
-window.onload = () => {
+window.addEventListener('DOMContentLoaded', () => {
   window.focus();
   document.body.addEventListener('click', () => {
     window.focus();
   });
 
-  fileNameEl.textContent = 'No File';
-  pageInfoEl.textContent = '0/0';
-};
+  if (fileNameEl) fileNameEl.textContent = 'No File';
+  if (pageInfoEl) pageInfoEl.textContent = '0/0';
+});

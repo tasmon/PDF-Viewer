@@ -55,8 +55,8 @@
     </footer>
   </div>
 
-  <!-- Load the global library first, then our controller script -->
-  <script src="./pdf.min.mjs"></script>
-  <script src="app.js"></script>
+  <!-- Modern script sequence with explicit fallback checks -->
+  <script src="./pdf.min.mjs" type="module"></script>
+  <script src="app.js" type="module"></script>
 </body>
 </html>
