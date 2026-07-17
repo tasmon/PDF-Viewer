@@ -1,0 +1,184 @@
+/* Reset and Font Setup for Feature Phone Screens */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #000;
+  font-family: monospace, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Fixed Feature Phone Viewport */
+.phone-screen {
+  width: 240px;
+  height: 320px;
+  background-color: #111;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header UI (30px) */
+.top-bar {
+  height: 30px;
+  background-color: #222;
+  border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  font-weight: bold;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* Viewer Area */
+.viewer-area {
+  height: 260px;
+  width: 240px;
+  overflow: hidden; 
+  position: relative;
+  background-color: #333;
+}
+
+/* Manual Virtual Canvas Panning */
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#pdf-canvas {
+  display: block;
+}
+
+/* Home / Launch Selector UI */
+.startup-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.startup-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #0055ff;
+  margin-bottom: 15px;
+}
+
+.selector-box {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #444;
+  background-color: #222;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.selector-box.active {
+  background-color: #fff;
+  color: #000;
+  border-color: #fff;
+  font-weight: bold;
+}
+
+.help-text {
+  font-size: 10px;
+  color: #888;
+  margin-top: 15px;
+}
+
+/* Bottom Bar / Softkeys (30px) */
+.bottom-bar {
+  height: 30px;
+  background-color: #222;
+  border-top: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: bold;
+}
+
+/* Overlay Menus */
+.menu-overlay {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  width: 240px;
+  height: 260px;
+  background-color: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.menu-title {
+  background-color: #0055ff;
+  color: #fff;
+  padding: 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.menu-list {
+  list-style: none;
+  overflow-y: auto;
+}
+
+.menu-item {
+  display: block;
+  padding: 8px 12px;
+  border-bottom: 1px solid #222;
+  color: #ccc;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.menu-item.selected {
+  background-color: #fff;
+  color: #000;
+  font-weight: bold;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Settings, Help & About Pages */
+.placeholder-content {
+  padding: 15px;
+  height: 260px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.placeholder-content h1 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #0055ff;
+}

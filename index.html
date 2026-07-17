@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=240, height=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PDF Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="phone-screen" tabindex="-1">
+    <!-- Header/Top Bar -->
+    <header class="top-bar">
+      <span id="file-name" class="truncate">No File</span>
+      <span id="page-info">0/0</span>
+    </header>
+
+    <!-- Viewer Area -->
+    <main class="viewer-area" id="viewer-area">
+      <!-- File Selector UI / On-Launch screen -->
+      <div id="startup-screen" class="startup-container">
+        <p class="startup-title">CloudPhone PDF</p>
+        
+        <label for="startup-file-picker" class="selector-box active" id="lbl-local-file">
+          Load Local PDF
+          <input type="file" id="startup-file-picker" accept="application/pdf" style="display: none;">
+        </label>
+        
+        <p class="help-text">Press Enter or click above to browse files.</p>
+      </div>
+
+      <!-- PDF Page Render Canvas -->
+      <div id="canvas-container" class="hidden">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
+    </main>
+
+    <!-- Menu Overlay -->
+    <div id="menu-overlay" class="menu-overlay hidden" tabindex="-1">
+      <div class="menu-title">Options</div>
+      <ul class="menu-list" id="menu-list">
+        <!-- Secure label wrapper for standard menu file picking -->
+        <label class="menu-item selected" data-action="open-file" for="menu-file-picker" style="display: block;">
+          Open Local PDF
+          <input type="file" id="menu-file-picker" accept="application/pdf" style="display: none;">
+        </label>
+        <li class="menu-item" data-action="help">Help</li>
+        <li class="menu-item" data-action="about">About</li>
+        <li class="menu-item" data-action="settings">Settings</li>
+      </ul>
+    </div>
+
+    <!-- Softkey / Bottom Bar -->
+    <footer class="bottom-bar" tabindex="-1">
+      <span id="softkey-left">Options</span>
+      <span id="softkey-right">Exit</span>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

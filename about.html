@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=240, height=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>About</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="phone-screen">
+    <header class="top-bar">
+      <span>About App</span>
+      <span></span>
+    </header>
+
+    <main class="placeholder-content">
+      <h1>CloudPhone PDF</h1>
+      <p>v2.0.10</p>
+      <p>Developer - Tasmon Islam</p>
+      <p>Uses PDF.js Core</p>
+    </main>
+
+    <footer class="bottom-bar">
+      <span></span>
+      <span id="softkey-right">Back</span>
+    </footer>
+  </div>
+
+  <script>
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'SoftRight' || e.key === 'F2' || e.key === 'Backspace' || e.key === 'Escape') {
+        e.preventDefault();
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>
