@@ -1,6 +1,8 @@
 import * as pdfjsLib from './pdf.min.mjs';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+// FORCE COMPATIBILITY MODE: Disable modern background workers completely for older cloud browsers
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+pdfjsLib.GlobalWorkerOptions.disableWorker = true;
 
 // Application State
 let pdfDoc = null;
@@ -70,7 +72,7 @@ function updateScrollPosition() {
   canvasContainer.style.top = (-scrollY) + "px";
 }
 
-// Fixed Local File Loader using Object URLs instead of ArrayBuffers
+// Fixed Compatibility Local File Loader using an legacy Uint8Array buffer strategy
 async function loadPDF(file) {
   if (!file) return;
   
@@ -78,25 +80,42 @@ async function loadPDF(file) {
   pageInfoEl.textContent = "0/0";
 
   try {
-    // Convert the local file into a secure Blob URL path
-    const fileUrl = URL.createObjectURL(file);
+    const fileReader = new FileReader();
     
-    // Load the file using standard loading mechanisms
-    const loadingTask = pdfjsLib.getDocument(fileUrl);
-    pdfDoc = await loadingTask.promise;
+    fileReader.onload = async function() {
+      try {
+        const typedarray = new Uint8Array(this.result);
+        
+        // Pass raw bytes directly to prevent background thread crashes
+        const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+        pdfDoc = await loadingTask.promise;
+        
+        fileNameEl.textContent = file.name;
+        startupScreen.classList.add('hidden');
+        canvasContainer.classList.remove('hidden');
+        isViewingPdf = true;
+        currentPageNum = 1;
+        
+        await renderPage(currentPageNum);
+      } catch (innerError) {
+        showErrorUI();
+      }
+    };
     
-    fileNameEl.textContent = file.name;
-    startupScreen.classList.add('hidden');
-    canvasContainer.classList.remove('hidden');
-    isViewingPdf = true;
-    currentPageNum = 1;
-    
-    await renderPage(currentPageNum);
+    fileReader.onerror = function() {
+      showErrorUI();
+    };
+
+    fileReader.readAsArrayBuffer(file);
   } catch (error) {
-    fileNameEl.textContent = 'Error';
-    pageInfoEl.textContent = '0/0';
-    alert('PDF format incompatible or engine crashed.');
+    showErrorUI();
   }
+}
+
+function showErrorUI() {
+  fileNameEl.textContent = 'Error';
+  pageInfoEl.textContent = '0/0';
+  alert('Incompatible PDF format or out of memory on simulator.');
 }
 
 // Menu overlay triggers
